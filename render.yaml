@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: flood-monitoring-dashboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run dashboard/streamlit_app.py --server.port=$PORT --server.address=0.0.0.0
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: flood-db
+          property: connectionString
+      - key: FLOOD_DATASET_PATH
+        value: /opt/render/project/src/data/thailand_flood_sample.csv
+      - key: FLOOD_SCHEMA
+        value: public
+      - key: FLOOD_TABLE
+        value: flood_risk_events
+
+databases:
+  - name: flood-db
+    databaseName: flood_db
+    user: flood_user
+    plan: free
+    postgresMajorVersion: 16
