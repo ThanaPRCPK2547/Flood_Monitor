@@ -68,12 +68,10 @@ def load_settings(config_path: str | Path = "config/settings.yaml") -> PipelineS
     start_date, end_date = _resolve_date_range()
 
     data_source_cfg = cfg.get("data_source", {})
-    csv_path = Path(
-        os.getenv(
-            "FLOOD_DATASET_PATH",
-            data_source_cfg.get("csv_path", "/Users/thanakorn/Desktop/thailand_flood_mockup_1M.csv"),
-        )
-    )
+    csv_path_str = os.getenv("FLOOD_DATASET_PATH") or data_source_cfg.get("csv_path")
+    if not csv_path_str:
+        raise ValueError("FLOOD_DATASET_PATH must be set in .env or config/settings.yaml")
+    csv_path = Path(csv_path_str)
 
     settings = PipelineSettings(
         data_source=DataSourceConfig(

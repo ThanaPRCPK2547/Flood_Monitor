@@ -1,12 +1,12 @@
 data_source:
   mode: csv_mockup
-  csv_path: /Users/thanakorn/Desktop/thailand_flood_mockup_1M.csv
+  csv_path: data/thailand_flood_sample.csv
 
 processing:
   min_samples_per_province: 300
 
 storage:
-  schema: public
+  schema: ""
   table: flood_risk_events
 
 paths:

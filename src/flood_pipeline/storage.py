@@ -14,24 +14,26 @@ def save_flood_events_to_postgis(
         return 0
 
     engine = create_engine(database_url)
-
+    
     with engine.begin() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
-        conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+        if schema:
+            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
 
     gdf.to_postgis(
         name=table,
         con=engine,
-        schema=schema,
+        schema=schema if schema else None,
         if_exists="append",
         index=False,
     )
 
+    table_ref = f'"{schema}"."{table}"' if schema else f'"{table}"'
     with engine.begin() as conn:
         conn.execute(
             text(
                 f'CREATE INDEX IF NOT EXISTS "{table}_geom_gix" '
-                f'ON "{schema}"."{table}" USING GIST (geometry)'
+                f'ON {table_ref} USING GIST (geometry)'
             )
         )
 
