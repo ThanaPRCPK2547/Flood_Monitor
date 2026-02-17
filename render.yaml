@@ -5,20 +5,13 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: streamlit run dashboard/streamlit_app.py --server.port=$PORT --server.address=0.0.0.0
     envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: flood-db
-          property: connectionString
+      - key: PYTHON_VERSION
+        value: 3.11.11
       - key: FLOOD_DATASET_PATH
         value: /opt/render/project/src/data/thailand_flood_sample.csv
-      - key: FLOOD_SCHEMA
-        value: public
-      - key: FLOOD_TABLE
-        value: flood_risk_events
-
-databases:
-  - name: flood-db
-    databaseName: flood_db
-    user: flood_user
-    plan: free
-    postgresMajorVersion: 16
+      - key: FLOOD_LOCAL_GEOJSON_GLOB
+        value: data/output/flood_risk_*.geojson
+      - key: FLOOD_LOOKBACK_DAYS
+        value: "90"
+      - key: FLOOD_MIN_SAMPLES_PER_PROVINCE
+        value: "300"

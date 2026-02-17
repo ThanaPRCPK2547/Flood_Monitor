@@ -10,7 +10,7 @@ def save_flood_events_to_postgis(
     schema: str,
     table: str,
 ) -> int:
-    if gdf.empty:
+    if gdf.empty or not database_url.strip():
         return 0
 
     engine = create_engine(database_url)

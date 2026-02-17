@@ -38,6 +38,7 @@ class PipelineSettings:
     storage: StorageConfig
     paths: PathsConfig
     database_url: str
+    strict_db: bool
     start_date: date
     end_date: date
 
@@ -89,6 +90,7 @@ def load_settings(config_path: str | Path = "config/settings.yaml") -> PipelineS
             output_dir=Path(cfg.get("paths", {}).get("output_dir", "data/output")),
         ),
         database_url=os.getenv("DATABASE_URL", ""),
+        strict_db=os.getenv("FLOOD_STRICT_DB", "false").strip().lower() in {"1", "true", "yes", "on"},
         start_date=start_date,
         end_date=end_date,
     )
@@ -98,8 +100,5 @@ def load_settings(config_path: str | Path = "config/settings.yaml") -> PipelineS
 
     if not settings.data_source.csv_path.exists():
         raise FileNotFoundError(f"Dataset file not found: {settings.data_source.csv_path}")
-
-    if not settings.database_url:
-        raise ValueError("Missing DATABASE_URL in environment variables.")
 
     return settings

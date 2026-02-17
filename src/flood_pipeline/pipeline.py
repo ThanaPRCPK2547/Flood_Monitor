@@ -29,12 +29,26 @@ def run_pipeline(config_path: str | Path = "config/settings.yaml") -> dict:
     if not flood_gdf.empty:
         flood_gdf.to_file(output_geojson, driver="GeoJSON")
 
-    inserted_rows = save_flood_events_to_postgis(
-        gdf=flood_gdf,
-        database_url=settings.database_url,
-        schema=settings.storage.schema,
-        table=settings.storage.table,
-    )
+    inserted_rows = 0
+    db_status = "disabled"
+    db_error = ""
+
+    if settings.database_url.strip():
+        try:
+            inserted_rows = save_flood_events_to_postgis(
+                gdf=flood_gdf,
+                database_url=settings.database_url,
+                schema=settings.storage.schema,
+                table=settings.storage.table,
+            )
+            db_status = "ok"
+        except Exception as exc:
+            db_error = f"{type(exc).__name__}: {exc}"
+            db_status = "error"
+            if settings.strict_db:
+                raise
+    elif settings.strict_db:
+        raise ValueError("FLOOD_STRICT_DB=true but DATABASE_URL is missing")
 
     return {
         "dataset": str(settings.data_source.csv_path),
@@ -43,5 +57,8 @@ def run_pipeline(config_path: str | Path = "config/settings.yaml") -> dict:
         "records_used": int(len(raw_df)),
         "province_points": int(len(flood_gdf)),
         "rows_inserted": inserted_rows,
+        "db_status": db_status,
+        "db_error": db_error,
+        "strict_db": settings.strict_db,
         "flood_geojson": str(output_geojson),
     }

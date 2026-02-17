@@ -1,60 +1,64 @@
-# Deploy บน Render (สำหรับโชว์ผลงาน CV)
+# Deploy Web App on Render
 
-## เตรียมข้อมูล
-เนื่องจาก CSV ขนาด 1M rows ใหญ่เกินไป แนะนำสร้าง sample ขนาดเล็กสำหรับ demo:
+เอกสารนี้สรุป 2 โหมด deploy:
+- Quick Deploy (แนะนำ): รันจาก CSV โดยไม่ต้องมี Postgres
+- Optional DB Mode: เพิ่ม Postgres/PostGIS ภายหลัง
 
-```bash
-# สร้าง sample 10,000 rows
-head -n 10001 /Users/thanakorn/Desktop/thailand_flood_mockup_1M.csv > data/thailand_flood_sample.csv
-```
+## Quick Deploy (CSV-only, แนะนำ)
 
-## ขั้นตอน Deploy
-
-### 1. Push โปรเจกต์ขึ้น GitHub
+### 1) เตรียม repo
 ```bash
 cd /Users/thanakorn/Desktop/Automated-Flood-Monitoring-Pipeline
-git init
 git add .
-git commit -m "Initial commit - Flood Monitoring Pipeline"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/flood-monitoring.git
-git push -u origin main
+git commit -m "Prepare Render deployment"
+git push origin main
 ```
 
-### 2. Deploy บน Render
-1. ไปที่ https://render.com (สมัครฟรี)
-2. คลิก **New +** → **Blueprint**
-3. เชื่อมต่อ GitHub repository
-4. Render จะอ่าน `render.yaml` และสร้าง:
-   - PostgreSQL database (ฟรี)
-   - Web Service สำหรับ Streamlit dashboard (ฟรี)
+### 2) Deploy ด้วย Blueprint
+1. ไปที่ https://render.com
+2. เลือก `New +` -> `Blueprint`
+3. เลือก GitHub repository นี้
+4. Render จะอ่าน `render.yaml` และสร้าง web service ให้ทันที
 
-### 3. Setup Database (ครั้งเดียว)
-หลัง deploy เสร็จ:
-1. ไปที่ dashboard → เลือก **flood-monitoring-dashboard**
-2. คลิก **Shell** tab
-3. รันคำสั่ง:
+### 3) ตรวจสอบการทำงาน
+หลัง deploy สำเร็จ เปิด URL ของ service แล้วเช็คว่า:
+- sidebar โหลดได้
+- map แสดง event-level scatter ได้
+- table แสดง ranking ได้
+
+## Optional: Enable Postgres/PostGIS Mode
+
+ถ้าต้องการใช้ข้อมูล aggregate จาก DB เพิ่มเติม:
+
+### 1) สร้าง PostgreSQL service บน Render
+- สร้าง Postgres instance แยกใน Render dashboard
+- คัดลอก connection string
+
+### 2) ใส่ env vars ใน web service
+- `DATABASE_URL=<your render postgres url>`
+- `FLOOD_SCHEMA=public`
+- `FLOOD_TABLE=flood_risk_events`
+
+### 3) เปิด shell แล้ว init DB
 ```bash
 bash scripts/render_setup.sh
 ```
 
-### 4. เข้าใช้งาน
-- Dashboard URL: `https://flood-monitoring-dashboard.onrender.com`
-- Database: เชื่อมต่ออัตโนมัติผ่าน environment variable
+สคริปต์นี้จะ:
+- create extension `postgis`
+- create table จาก `sql/init_postgis.sql`
+- run pipeline เติมข้อมูลเริ่มต้น
 
-## ข้อจำกัด Free Plan
-- Web service จะ sleep หลังไม่มีคนใช้ 15 นาที (ใช้เวลา ~30 วินาทีในการ wake up)
-- Database: 1GB storage, 97 ชั่วโมง/เดือน
-- เหมาะสำหรับ demo/portfolio
-
-## Tips สำหรับ CV
-- เพิ่ม screenshot ของ dashboard ใน README
-- อธิบาย architecture และ tech stack
-- ใส่ live demo link
-- เขียน case study สั้นๆ ว่าแก้ปัญหาอะไร
+## Runtime Notes
+- Dashboard มี fallback data source อัตโนมัติ: `DB -> GeoJSON -> CSV`
+- ตอนนี้ deploy config ใน `render.yaml` ตั้งเป็น CSV-first เพื่อให้ขึ้นเว็บได้เร็วและเสถียร
+- dataset ที่ใช้บน Render ถูกตั้งค่าโดย `FLOOD_DATASET_PATH=/opt/render/project/src/data/thailand_flood_sample.csv`
 
 ## Troubleshooting
-หาก dashboard ไม่แสดงข้อมูล:
-1. ตรวจสอบ logs: Dashboard → Logs tab
-2. ตรวจสอบว่ารัน `render_setup.sh` แล้ว
-3. ตรวจสอบว่า CSV file อยู่ใน repo
+- App ไม่ขึ้น:
+  - ตรวจ Logs ของ Render service
+  - ตรวจว่า `data/thailand_flood_sample.csv` อยู่ใน repo
+  - ตรวจ build ว่าติดตั้ง dependency ครบจาก `requirements.txt`
+- DB mode ใช้ไม่ได้:
+  - เช็ค `DATABASE_URL` ถูกต้อง
+  - เช็คว่า run `bash scripts/render_setup.sh` แล้ว
